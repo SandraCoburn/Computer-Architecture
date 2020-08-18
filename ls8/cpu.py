@@ -10,29 +10,60 @@ class CPU:
         self.ram = [0] * 256 
         self.pc = 0 
         self.reg = [0] * 8
-        self.running = False
+        self.running = True
+        self.machine = {
+            'MUL':0b10100010,
+            'HLT':0b00000001,
+            'LDI':0b10000010,
+            'PRN':0b01000111
+            }
         
 
     def load(self):
         """Load a program into memory."""
-
         address = 0
+        file_name = sys.argv[1]
+        if len(sys.argv) != 2:
+            print("Ned to input a file: cpu.py")
+            sys.exit(1)
+        try:
+            with open(file_name) as file:
+                for line in file:
+                    print("line: ", line)
+                    split_line = line.split("#")
+                    command = split_line[0].strip()
+                    print("command: ", command)
+                    if command == "":
+                        continue
+                    num = int(command)
+                    print(f"{num:8b} is {num}")
+                    
+                    self.ram[address] = int(command, 2)
+                    
+                    address += 1
+                    print("Ram: ", self.ram)
+        except FileNotFoundError:
+            print(f"Couldn't open {sys.argv[1]}")
+            sys.exit(2)
+
+            if address == 0:
+                print("Program was empty")
+                sys.exit(3)
 
         # For now, we've just hardcoded a program:
+        # program = [
+        #   # From print8.ls8
+        #     0b10000010, # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
 
-        program = [
-          # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
-
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
 
     def ram_read(self, counter):
         return self.ram[counter]
@@ -70,37 +101,40 @@ class CPU:
     def run(self):
         """Run the CPU."""
         #  0b10000010 
-        self.running = True
         pc = self.pc
-        print("running")
-        print("Register", self.reg)
+        
         #Add the HLT instruction definition
-        HLT = 0b00000001 
-        LDI = 0b10000010
-        PRN = 0b01000111
+        # HLT = 0b00000001 
+        # LDI = 0b10000010
+        # PRN = 0b01000111
+        # MUL = 0b10100010
 
         while self.running:
             
             #Instruction Register. Read memory address stored in pc
             ir = self.ram_read(pc)
-            print("ir", ir)
-            if ir == HLT:
+           
+            if ir == self.machine["HLT"]:
                 #exit the program
                 self.running = False
                 pc += 1
-                #sys.exit()
-            if ir == LDI:
+                sys.exit()
+            if ir == self.machine["LDI"]:
                 #This instruction sets a specified register to a specified value,
                 # set the value to an integer
-                print(self.ram_read(pc+1))
+                # print("ram read:",self.ram_read(pc+1))
+                # reg = self.ram[pc + 1]
+                # num_to_save = self.ram[pc +2]
+                # self.reg[reg] = num_to_save 
                 self.ram_write(self.ram_read(pc+1), self.ram_read(pc+2))
-                print("LDI, pc, pc+1", ir, self.ram_read(pc+1), self.ram_read(pc+2))
-                
+                print("LDI, pc, pc+1: ", ir, self.ram_read(pc+1), self.ram_read(pc+2))
+                self.trace()
                 pc += 3
-            if ir == PRN:
+            if ir == self.machine["PRN"]:
                 #Print to the console the decimal integer value that is stored in the given register
-                print(self.ram_read(pc+1))
-                print("Register, ram: ", self.reg, self.ram)
+                reg_num = self.ram[pc + 1]
+                print(self.reg[reg_num])  
                 pc += 2
-
+          
+            #self.trace()
 
