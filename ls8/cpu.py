@@ -23,7 +23,7 @@ class CPU:
         """Load a program into memory."""
         address = 0
         file_name = sys.argv[1]
-        if len(sys.argv) != 2:
+        if len(sys.argv) < 2:
             print("Ned to input a file: cpu.py")
             sys.exit(1)
         try:
@@ -35,15 +35,15 @@ class CPU:
                     print("command: ", command)
                     if command == "":
                         continue
-                    num = int(command)
-                    print(f"{num:8b} is {num}")
+                    instruction = int(command, 2)
+                    print(f"{instruction:8b} is {instruction}")
                     
-                    self.ram[address] = int(command, 2)
+                    self.ram[address] = instruction
                     
                     address += 1
                     print("Ram: ", self.ram)
         except FileNotFoundError:
-            print(f"Couldn't open {sys.argv[1]}")
+            print(f"Couldn't open {sys.argv[0]}:{sys.argv[1]}")
             sys.exit(2)
 
             if address == 0:
@@ -71,12 +71,19 @@ class CPU:
         self.reg[counter] = MDR
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
-
+        # value = op >> 6
+        # value = value + 1
+        #print("value: ", value)
+       
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
+        if op == "MUL":
+            print("MUL results: ",self.reg[reg_a] * self.reg[reg_b])
+            self.reg[reg_a] *= self.reg[reg_b]
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
+            #sys.exit()
 
     def trace(self):
         """
@@ -102,6 +109,12 @@ class CPU:
         """Run the CPU."""
         #  0b10000010 
         pc = self.pc
+        # ir = {
+        # 0b10100010:'MUL',
+        # 0b00000001:'HLT',
+        # 0b10000010:'LDI',
+        # 0b01000111:'PRN'
+        # }
         
         #Add the HLT instruction definition
         # HLT = 0b00000001 
@@ -110,7 +123,7 @@ class CPU:
         # MUL = 0b10100010
 
         while self.running:
-            
+            #self.alu(ir[self.ram_read(pc)], self.ram_read(pc+1), self.ram_read(pc+2))
             #Instruction Register. Read memory address stored in pc
             ir = self.ram_read(pc)
            
@@ -135,6 +148,11 @@ class CPU:
                 reg_num = self.ram[pc + 1]
                 print(self.reg[reg_num])  
                 pc += 2
-          
+            if ir == self.machine["MUL"]:
+                reg_a = self.ram_read(pc + 1)
+                reg_b = self.ram_read(pc +2)
+                self.alu("MUL", reg_a, reg_b)
+                pc += 3
+
             #self.trace()
 
