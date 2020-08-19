@@ -15,7 +15,9 @@ class CPU:
             'MUL':0b10100010,
             'HLT':0b00000001,
             'LDI':0b10000010,
-            'PRN':0b01000111
+            'PRN':0b01000111,
+            'PUSH':0b01000101,
+            'POP':0b01000110
             }
         
 
@@ -24,7 +26,7 @@ class CPU:
         address = 0
         file_name = sys.argv[1]
         if len(sys.argv) < 2:
-            print("Ned to input a file: cpu.py")
+            print("Need to input a second file name: python3 first_file_name.py second_file_name.py")
             sys.exit(1)
         try:
             with open(file_name) as file:
@@ -109,12 +111,7 @@ class CPU:
         """Run the CPU."""
         #  0b10000010 
         pc = self.pc
-        # ir = {
-        # 0b10100010:'MUL',
-        # 0b00000001:'HLT',
-        # 0b10000010:'LDI',
-        # 0b01000111:'PRN'
-        # }
+        self.reg[7] = 0xF4
         
         #Add the HLT instruction definition
         # HLT = 0b00000001 
@@ -134,14 +131,10 @@ class CPU:
                 sys.exit()
             if ir == self.machine["LDI"]:
                 #This instruction sets a specified register to a specified value,
-                # set the value to an integer
-                # print("ram read:",self.ram_read(pc+1))
-                # reg = self.ram[pc + 1]
-                # num_to_save = self.ram[pc +2]
-                # self.reg[reg] = num_to_save 
+               
                 self.ram_write(self.ram_read(pc+1), self.ram_read(pc+2))
                 print("LDI, pc, pc+1: ", ir, self.ram_read(pc+1), self.ram_read(pc+2))
-                self.trace()
+                #self.trace()
                 pc += 3
             if ir == self.machine["PRN"]:
                 #Print to the console the decimal integer value that is stored in the given register
@@ -153,6 +146,34 @@ class CPU:
                 reg_b = self.ram_read(pc +2)
                 self.alu("MUL", reg_a, reg_b)
                 pc += 3
+            if ir == self.machine["PUSH"]:
+                #stack pointer decrement
+                self.reg[7] -= 1
+                #get value from the register number
+                reg = self.ram[pc+1]
+                #get the value from the given register
+                value = self.reg[reg]
+                #put it on the stack at the pointer address
+                sp = self.reg[7]
+                self.ram[sp] = value
+                self.trace()
+                pc += 2
 
-            #self.trace()
+            if ir == self.machine["POP"]:
+                # get the stack pointer (where do we look?)
+                sp = self.reg[7]
+                # get register number to put value in
+                reg = self.ram[pc+1]
+                # use stack pointer to get the value
+                value = self.ram[sp]
+                #put the value into the given register
+                self.reg[reg] = value
+                #increment our stack pointer
+                self.reg[7] += 1
+                # icnrement our program counter
+                #self.trace()
+                pc += 2
+                
+
+          
 
