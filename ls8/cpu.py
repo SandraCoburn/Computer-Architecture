@@ -12,12 +12,15 @@ class CPU:
         self.reg = [0] * 8
         self.running = True
         self.machine = {
-            'MUL':0b10100010,
-            'HLT':0b00000001,
-            'LDI':0b10000010,
-            'PRN':0b01000111,
-            'PUSH':0b01000101,
-            'POP':0b01000110
+            "RET":0b00010001,
+            "ADD":0b10100000,
+            "MUL":0b10100010,
+            "HLT":0b00000001,
+            "LDI":0b10000010,
+            "PRN":0b01000111,
+            "PUSH":0b01000101,
+            "POP":0b01000110,
+            "CALL":0b01010000,
             }
         
 
@@ -73,11 +76,9 @@ class CPU:
         self.reg[counter] = MDR
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
-        # value = op >> 6
-        # value = value + 1
-        #print("value: ", value)
        
         if op == "ADD":
+            print("ADD result:", self.reg[reg_a] + self.reg[reg_b])
             self.reg[reg_a] += self.reg[reg_b]
         if op == "MUL":
             print("MUL results: ",self.reg[reg_a] * self.reg[reg_b])
@@ -110,7 +111,7 @@ class CPU:
     def run(self):
         """Run the CPU."""
         #  0b10000010 
-        pc = self.pc
+       
         self.reg[7] = 0xF4
         
         #Add the HLT instruction definition
@@ -120,50 +121,56 @@ class CPU:
         # MUL = 0b10100010
 
         while self.running:
-            #self.alu(ir[self.ram_read(pc)], self.ram_read(pc+1), self.ram_read(pc+2))
+            
             #Instruction Register. Read memory address stored in pc
-            ir = self.ram_read(pc)
+            ir = self.ram_read(self.pc)
            
             if ir == self.machine["HLT"]:
                 #exit the program
                 self.running = False
-                pc += 1
+                self.pc += 1
                 sys.exit()
-            if ir == self.machine["LDI"]:
+            elif ir == self.machine["LDI"]:
                 #This instruction sets a specified register to a specified value,
                
-                self.ram_write(self.ram_read(pc+1), self.ram_read(pc+2))
-                print("LDI, pc, pc+1: ", ir, self.ram_read(pc+1), self.ram_read(pc+2))
+                self.ram_write(self.ram_read(self.pc+1), self.ram_read(self.pc+2))
+                #print("LDI, pc, pc+1: ", ir, self.ram_read(pc+1), self.ram_read(pc+2))
                 #self.trace()
-                pc += 3
-            if ir == self.machine["PRN"]:
+                self.pc += 3
+            elif ir == self.machine["ADD"]:
+                reg_a = self.ram_read(self.pc + 1)
+                reg_b = self.ram_read(self.pc + 2)
+                self.alu("ADD", reg_a, reg_b)
+                self.pc += 3
+             
+            elif ir == self.machine["PRN"]:
                 #Print to the console the decimal integer value that is stored in the given register
-                reg_num = self.ram[pc + 1]
+                reg_num = self.ram[self.pc + 1]
                 print(self.reg[reg_num])  
-                pc += 2
-            if ir == self.machine["MUL"]:
-                reg_a = self.ram_read(pc + 1)
-                reg_b = self.ram_read(pc +2)
+                self.pc += 2
+            elif ir == self.machine["MUL"]:
+                reg_a = self.ram_read(self.pc + 1)
+                reg_b = self.ram_read(self.pc +2)
                 self.alu("MUL", reg_a, reg_b)
-                pc += 3
-            if ir == self.machine["PUSH"]:
+                self.pc += 3
+            elif ir == self.machine["PUSH"]:
                 #stack pointer decrement
                 self.reg[7] -= 1
                 #get value from the register number
-                reg = self.ram[pc+1]
+                reg = self.ram[self.pc+1]
                 #get the value from the given register
                 value = self.reg[reg]
                 #put it on the stack at the pointer address
                 sp = self.reg[7]
                 self.ram[sp] = value
                 self.trace()
-                pc += 2
+                self.pc += 2
 
-            if ir == self.machine["POP"]:
+            elif ir == self.machine["POP"]:
                 # get the stack pointer (where do we look?)
                 sp = self.reg[7]
                 # get register number to put value in
-                reg = self.ram[pc+1]
+                reg = self.ram[self.pc+1]
                 # use stack pointer to get the value
                 value = self.ram[sp]
                 #put the value into the given register
@@ -172,8 +179,41 @@ class CPU:
                 self.reg[7] += 1
                 # icnrement our program counter
                 #self.trace()
-                pc += 2
+                self.pc += 2
+            elif ir == self.machine["CALL"]:
+                #print("ir",ir)
+                ## Get register number
+                reg = self.ram[self.pc+1]
+                ### Get the addresa to jump to, from the register.
+                address = self.reg[reg]
+                print("address", address)
+                ### push command after CALL onto the stack
+                return_address = self.pc + 2
+                ### decrement stack pointer
+                self.reg[7] -= 1
+                sp = self.reg[7]
+                print("stack", sp)
+                ### put the return address ont he stack
+                self.ram[sp] = return_address
+                print("return add:", return_address)
+                ### then look at register, jump to that address
+                self.pc = address
                 
-
-          
-
+                self.trace()
+             
+            elif ir == self.machine["RET"]:
+                print("self.pc", self.pc)
+                # pop the return address off the stack
+                sp = self.reg[7]
+                return_address = self.ram[sp]
+                self.reg[7] += 1
+                # go to the return address. set the self.pc to return address
+                self.pc = return_address
+                
+               
+            else:
+                print(f"Invalid instruction {ir} code at address {self.pc}")
+                sys.exit()
+        # #self.trace()
+            # if ir & 0b00010000 == 0:
+            #     self.pc =+ (ir >> 6) + 1
