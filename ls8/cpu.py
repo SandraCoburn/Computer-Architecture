@@ -80,7 +80,7 @@ class CPU:
         if op == "ADD":
             print("ADD result:", self.reg[reg_a] + self.reg[reg_b])
             self.reg[reg_a] += self.reg[reg_b]
-        if op == "MUL":
+        elif op == "MUL":
             print("MUL results: ",self.reg[reg_a] * self.reg[reg_b])
             self.reg[reg_a] *= self.reg[reg_b]
         #elif op == "SUB": etc
@@ -124,7 +124,7 @@ class CPU:
             
             #Instruction Register. Read memory address stored in pc
             ir = self.ram_read(self.pc)
-           
+            print("ir: ", bin(ir))
             if ir == self.machine["HLT"]:
                 #exit the program
                 self.running = False
@@ -195,7 +195,7 @@ class CPU:
                 print("stack", sp)
                 ### put the return address ont he stack
                 self.ram[sp] = return_address
-                print("return add:", return_address)
+                print("return add:", self.ram[sp])
                 ### then look at register, jump to that address
                 self.pc = address
                 
