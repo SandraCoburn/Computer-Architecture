@@ -11,6 +11,7 @@ class CPU:
         self.pc = 0 
         self.reg = [0] * 8
         self.running = True
+        self.FL = 0b00000000 #`00000LGE`
         self.machine = {
             "RET":0b00010001,
             "ADD":0b10100000,
@@ -21,6 +22,10 @@ class CPU:
             "PUSH":0b01000101,
             "POP":0b01000110,
             "CALL":0b01010000,
+            "CMP":0b10100111,
+            "JMP":0b01010100,
+            "JEQ":0b01010101,
+            "JNE":0b01010110,
             }
         
 
@@ -83,6 +88,14 @@ class CPU:
         elif op == "MUL":
             print("MUL results: ",self.reg[reg_a] * self.reg[reg_b])
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "CMP":
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.FL = 0b00000100  # L 
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.FL = 0b00000010  # G 
+            else:
+                self.FL = 0b00000001  # E 
+                
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -124,7 +137,7 @@ class CPU:
             
             #Instruction Register. Read memory address stored in pc
             ir = self.ram_read(self.pc)
-            print("ir: ", bin(ir))
+            #print("ir: ", bin(ir))
             if ir == self.machine["HLT"]:
                 #exit the program
                 self.running = False
@@ -197,23 +210,44 @@ class CPU:
                 self.ram[sp] = return_address
                 print("return add:", self.ram[sp])
                 ### then look at register, jump to that address
-                self.pc = address
-                
+                self.pc = address    
                 self.trace()
              
-            elif ir == self.machine["RET"]:
-                print("self.pc", self.pc)
+            elif ir == self.machine["RET"]:         
                 # pop the return address off the stack
                 sp = self.reg[7]
                 return_address = self.ram[sp]
                 self.reg[7] += 1
                 # go to the return address. set the self.pc to return address
                 self.pc = return_address
-                
-               
+
+            elif ir == self.machine["CMP"]:
+                reg_a = self.ram[self.pc + 1]
+                reg_b = self.ram[self.pc + 2]
+                self.alu("CMP", reg_a, reg_b)
+                self.pc += 3
+
+            elif ir == self.machine["JMP"]:
+                reg = self.ram[self.pc + 1]
+                self.pc = self.reg[reg]
+
+            elif ir == self.machine["JEQ"]:
+                reg = self.ram_read(self.pc + 1)
+                if self.FL == 0b00000001:  
+                    self.pc = self.reg[reg]
+                    #print("CMP", self.FL)
+                else:
+                    self.pc += 2
+                    #print("CMP", self.FL)
+            elif ir == self.machine["JNE"]:
+                reg = self.ram[self.pc + 1]
+                if self.FL != 0b00000001:  
+                    self.pc = self.reg[reg]                                   
+                else:
+                    self.pc += 2        
             else:
                 print(f"Invalid instruction {ir} code at address {self.pc}")
                 sys.exit()
-        # #self.trace()
+            self.trace()
             # if ir & 0b00010000 == 0:
             #     self.pc =+ (ir >> 6) + 1
